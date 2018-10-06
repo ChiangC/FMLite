@@ -16,7 +16,7 @@ import com.fmtech.fmlite.annotation.DatabaseTable;
 
 @DatabaseTable("tb_user")
 public class User {
-    public int user_Id=0;
+    public Integer user_Id=0;
 
     @DatabaseField("name")
     public String name;

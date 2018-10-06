@@ -7,9 +7,7 @@ import android.text.TextUtils;
 
 import com.fmtech.fmlite.annotation.DatabaseField;
 import com.fmtech.fmlite.annotation.DatabaseTable;
-import com.fmtech.fmlite.db.IBaseDao;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -59,19 +57,25 @@ public abstract class BaseDao<T> implements IBaseDao<T>{
                 return false;
             }
 
+            //Create table if necessary
             if(!TextUtils.isEmpty(getCreateTableSQL())){
                 mSQLiteDatabase.execSQL(getCreateTableSQL());
             }
 
             mCacheMap = new HashMap<>();
-            initCacheMap();
+            mappingTableAndEntityFields();
 
             isInited  = true;
         }
         return isInited;
     }
 
-    private void initCacheMap(){
+    /**
+     * 表字段和实体类成员变量映射的依据：
+     * 表字段名称是实体类成员变量注解值或者成员变量名称(当该成员变量没有相应注解的时候)。
+     */
+    private void mappingTableAndEntityFields(){
+        //" limit 1 , 0"从地条数据开始，查0条数据；这里主要是为了查询表的列名
         String sql = "select * from " + mTableName + " limit 1 , 0";
         Cursor cursor = null;
         try {
@@ -86,6 +90,7 @@ public abstract class BaseDao<T> implements IBaseDao<T>{
                 field.setAccessible(true);
             }
 
+            //映射表字段和Field的对应关系
             for(String columnName:columnNames){
                 Field columnField = null;
                 for(Field field:colmunFields){
@@ -176,6 +181,11 @@ public abstract class BaseDao<T> implements IBaseDao<T>{
         return cursorToList(cursor, where);
     }
 
+    /**
+     * 跟表字段和类字段的映射关系，将实体类实例对象成员变量值跟表字段值进行一一映射
+     * @param entity
+     * @return
+     */
     private Map<String, String> entityToMap(T entity){
         HashMap<String, String> result = new HashMap<>();
         Iterator fieldsIterator = mCacheMap.values().iterator();
@@ -206,6 +216,13 @@ public abstract class BaseDao<T> implements IBaseDao<T>{
         return result;
     }
 
+    /**
+     * HashMap<table_column_name, Field> mCacheMap;
+     * 根据mCachedMap中的key(columnName)，取得columnIndex;再根据Field的类型，获取相应的值。
+     * @param cursor
+     * @param where
+     * @return
+     */
     private List<T> cursorToList(Cursor cursor, T where){
         List<T> result = new ArrayList<>();
         if(null != cursor){
@@ -213,7 +230,7 @@ public abstract class BaseDao<T> implements IBaseDao<T>{
             while (cursor.moveToNext()){
 
                 try {
-                    item = where.getClass().newInstance();
+                    item = where.getClass().newInstance();//通过反射实例化实体类对象
                     Iterator iterator= mCacheMap.entrySet().iterator();
                     while(iterator.hasNext()){
                         Map.Entry entry = (Map.Entry)iterator.next();
@@ -253,6 +270,7 @@ public abstract class BaseDao<T> implements IBaseDao<T>{
 
     protected abstract String getCreateTableSQL();
 
+    //SQL语句条件类
     class Condition {
         private String whereClause;
         private String[] whereArgs;
@@ -260,7 +278,7 @@ public abstract class BaseDao<T> implements IBaseDao<T>{
         public Condition(Map<String, String> whereClause){
             StringBuilder whereClauseBuilder = new StringBuilder();
             ArrayList<String> values = new ArrayList<>();
-            whereClauseBuilder.append("1=1 ");
+            whereClauseBuilder.append("1=1 ");//恒成立条件，为了防止一些错误
             Set<String> keys = whereClause.keySet();
             Iterator iterator = keys.iterator();
             while (iterator.hasNext()){

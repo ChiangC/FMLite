@@ -84,8 +84,8 @@ public class MainActivity extends AppCompatActivity {
 //            Log.i(TAG,down.getPath()+"  time  "+down.getTime());
 //        }
         User where = new User();
-        where.setName("Andrew");
-        where.setUser_Id(2);
+//        where.setName("Andrew");
+//        where.setUser_Id(2);
         List<User> list = baseDao.query(where);
         Log.i(TAG, "查询到 " + list.size() + " 条数据:"+list.toString());
     }
